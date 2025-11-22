@@ -4,7 +4,7 @@ export const templatePaths = {
     EXPRESS:"/vibecode-starters/express-simple",
     VUE:"/vibecode-starters/vue",
     HONO:"/vibecode-starters/hono-nodejs-starter",
-    ANGULAR:"/videcode-starters/angular"
+    ANGULAR:"/vibecode-starters/angular"
 }
 
 

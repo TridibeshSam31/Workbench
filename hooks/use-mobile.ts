@@ -17,3 +17,19 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+//This hook tells you if the current screen size is mobile (<768px) and keeps updating automatically when the user resizes their browser.
+/*
+Where is this useful?
+
+Changing UI layout for mobile vs desktop
+
+Switching components (mobile menu vs desktop navbar)
+
+Disabling heavy animations on mobile
+
+Adjusting code editor layout on small screens
+
+
+
+*/
