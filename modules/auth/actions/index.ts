@@ -1,3 +1,7 @@
+//server actions used here that is we will create a function that we can use in this directly in our frontend component without making an api route 
+//for this purpose we will use "use server" directive at the top of the file 
+//this will help us to make the codebase look clearner rather thn making api calls for every small task
+
 "use server"
 
 import { db } from "@/lib/db"
