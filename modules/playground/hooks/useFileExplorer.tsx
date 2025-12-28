@@ -23,7 +23,7 @@ interface FileExplorerState{
     activeFileId:string | null ,
     editorContent: string,
 
-// setter methods
+ // setter methods
 
     setPlaygroundId: (id:string) => void,
     setTemplateData: (data:TemplateFolder | null) => void ,
@@ -34,9 +34,71 @@ interface FileExplorerState{
 
  //Functions
 
- openFile: (file:TemplateFile) => void ;
+ openFile: (file:TemplateFile) => void 
  closeFile : (fileId:string) => void 
  closeAllFiles: () => void 
+
+
+ //we will add the filehandling methods that is create new file delte files etc
+
+ //addfile
+ handleAddFile:(
+    newFile:TemplateFile,
+    parentPath:String,
+    writeFileSync:(filePath:String,content:String) => Promise<void>,
+    instance:any,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+ ) => Promise<void>;
+
+ //addfolder function defining 
+
+ handleAddFolder:(
+    newFolder:TemplateFolder,
+    parentPath:String,
+    instance:any,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+ ) => Promise<void>
+
+ //delete file function defining
+
+ handleDeleteFile:(
+    file:TemplateFile,
+    parentPath:String,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+ ) => Promise<void>
+
+ //deelte folder
+ handleDeleteFolder:(
+    folder:TemplateFolder,
+    parentPath:String,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+ ) => Promise<void>
+
+ //renaaming of file
+ handleRenameFile:(
+    file: TemplateFile,
+    newFilename: String,
+    newExtension:String,
+    parentPath:String,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+
+
+ ) => Promise<void>
+
+ 
+ //renaming of folder
+ handleRenameFolder:(
+    folder:TemplateFolder,
+    newFoldername:String,
+    newExtension:String,
+    parentPath:String,
+    saveTemplateData:(data:TemplateFolder) => Promise<void>
+ ) => Promise<void>
+
+ //updateFileContent
+
+ updateFileContent:(fileId:String,content:String) => void
+
 
 
 
@@ -131,6 +193,197 @@ export const useFileExplorer = create<FileExplorerState>((set,get)=>({
         
         
         
-    }
+    },
+
+
+    //now we will be writing all the functions that we have defined above i.e handleAddFile , handleDeleteFile , handleAddFolder etc
+    
+    //our target is that when we add a new file then it should add the file in the current template and after that it should sync with our current template 
+    handleAddFile:async(newFile,parentPath,writeFileSync,instance,saveTemplateData)=>{
+      
+        //get the templateData
+        const {templateData} = get()
+
+        if (!templateData) {
+            return
+        }
+
+        try {
+            const updateTemplateData = JSON.parse(JSON.stringify(templateData)) as TemplateFolder
+            const pathParts = parentPath.split("/")
+            //what does it do l;ike if we have our path like src/components/ui then it will split it into 
+            // ["src","components","ui"] this is our pathparts
+
+            let currentFolder = updateTemplateData
+
+            for(const part of pathParts){
+                if (part) {
+                    const nextFolder = currentFolder.items.find(
+                        (item) => "folderName" in item && item.folderName === part
+                    ) as TemplateFolder
+                    if (nextFolder) {
+                        currentFolder = nextFolder
+                    }
+                }
+            }
+
+            //push the newfile in the currentfolder 
+            currentFolder.items.push(newFile)
+            set({templateData:updateTemplateData})
+            toast.success(`created file: ${newFile.filename}.${newFile.fileExtension}`)
+
+            //save the new structure
+
+            await saveTemplateData(updatedTemplateData);
+
+            //sync with web container 
+            if (writeFileSync) {
+         const filePath = parentPath
+          ? `${parentPath}/${newFile.filename}.${newFile.fileExtension}`
+          : `${newFile.filename}.${newFile.fileExtension}`;
+        await writeFileSync(filePath, newFile.content || "");
+         }
+
+          get().openFile(newFile);
+
+
+        } catch (error) {
+            console.error("Error adding file",error)
+            toast.error("Failed to create file")
+        }
+
+    },
+
+    handleAddFolder:async(newFolder,parentPath,instance,saveTemplateData) => {
+        const {templateData} = get()
+
+        if (!templateData) {
+            return
+        }
+
+        try {
+            const updatedTemplateData = JSON.parse(JSON.stringify(templateData)) as TemplateFolder
+            const pathParts = parentPath.split("/")
+
+            let currentFolder = updatedTemplateData
+
+            for(const part of pathParts){
+                if (part) {
+                    const nextFolder = currentFolder.items.find(
+                        (item) => "folderName" in item && item.folderName === part
+                    ) as TemplateFolder
+
+                    if (nextFolder) {
+                        currentFolder = nextFolder
+                    }
+
+
+
+                    
+                }
+
+                currentFolder.items.push(newFolder);
+               set({ templateData: updatedTemplateData });
+               toast.success(`Created folder: ${newFolder.folderName}`);
+               
+
+                // Use the passed saveTemplateData function
+              await saveTemplateData(updatedTemplateData);
+
+             // Sync with web container
+             if (instance && instance.fs) {
+              const folderPath = parentPath
+               ? `${parentPath}/${newFolder.folderName}`
+               : newFolder.folderName;
+             await instance.fs.mkdir(folderPath, { recursive: true });
+             }
+
+            }
+            
+        } catch (error) {
+         console.error("Error adding folder:", error);
+         toast.error("Failed to create folder");
+        }
+
+    },
+
+
+    handleDeleteFile:async (file,parentpath,saveTemplateData) => {
+        const {templateData,openFiles} = get()
+
+        if (!templateData) {
+            return
+            
+        }
+
+        try {
+         const updatedTemplateData = JSON.parse(JSON.stringify(templateData)) as TemplateFolder
+         
+         const pathParts = parentpath.split("/")
+         let currentFolder = updatedTemplateData
+
+         for(const part of pathParts){
+            if (part) {
+                const nextFolder = currentFolder.items.find((item) => "folderName" in item && item.folderName  === part) as TemplateFolder
+
+                 if (nextFolder) {
+                    currentFolder = nextFolder
+                
+                }
+            }
+
+            currentFolder.items = currentFolder.items.filter(
+         (item) =>
+          !("filename" in item) ||
+          item.filename !== file.filename ||
+          item.fileExtension !== file.fileExtension
+         );
+
+
+         // Find and close the file if it's open
+         // Use the same ID generation logic as in openFile
+         const fileId = generateFileId(file, templateData);
+         const openFile = openFiles.find((f) => f.id === fileId);
+      
+         if (openFile) {
+          // Close the file using the closeFile method
+          get().closeFile(fileId);
+         }
+
+         set({ templateData: updatedTemplateData });
+
+         // Use the passed saveTemplateData function
+         await saveTemplateData(updatedTemplateData);
+         toast.success(`Deleted file: ${file.filename}.${file.fileExtension}`);
+
+           
+         }
+        } catch (error) {
+         console.error("Error adding folder:", error);
+         toast.error("Failed to create folder");
+        }
+
+    },
+
+    updateFileContent: (fileId, content) => {
+    set((state) => ({
+      openFiles: state.openFiles.map((file) =>
+        file.id === fileId
+          ? {
+              ...file,
+              content,
+              hasUnsavedChanges: content !== file.originalContent,
+            }
+          : file
+      ),
+      editorContent:
+        fileId === state.activeFileId ? content : state.editorContent,
+    }));
+  },
+
+
+
+
+
 
 }))
