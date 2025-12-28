@@ -1,4 +1,4 @@
-# 🧠 Vibecode Editor – where code meets AI, voice, and speed.
+# 🧠 Vibecode Editor – where code meets AI, voice, and speed (Version-1)
 
 
 
