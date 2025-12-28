@@ -44,8 +44,8 @@ interface FileExplorerState{
  //addfile
  handleAddFile:(
     newFile:TemplateFile,
-    parentPath:String,
-    writeFileSync:(filePath:String,content:String) => Promise<void>,
+    parentPath:string,
+    writeFileSync:(filePath:string,content:string) => Promise<void>,
     instance:any,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>;
@@ -54,7 +54,7 @@ interface FileExplorerState{
 
  handleAddFolder:(
     newFolder:TemplateFolder,
-    parentPath:String,
+    parentPath:string,
     instance:any,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>
@@ -63,23 +63,23 @@ interface FileExplorerState{
 
  handleDeleteFile:(
     file:TemplateFile,
-    parentPath:String,
+    parentPath:string,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>
 
  //deelte folder
  handleDeleteFolder:(
     folder:TemplateFolder,
-    parentPath:String,
+    parentPath:string,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>
 
  //renaaming of file
  handleRenameFile:(
     file: TemplateFile,
-    newFilename: String,
-    newExtension:String,
-    parentPath:String,
+    newFilename: string,
+    newExtension:string,
+    parentPath:string,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
 
 
@@ -89,15 +89,15 @@ interface FileExplorerState{
  //renaming of folder
  handleRenameFolder:(
     folder:TemplateFolder,
-    newFoldername:String,
-    newExtension:String,
-    parentPath:String,
+    newFoldername:string,
+    newExtension:string,
+    parentPath:string,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>
 
  //updateFileContent
 
- updateFileContent:(fileId:String,content:String) => void
+ updateFileContent:(fileId:string,content:string) => void
 
 
 
@@ -234,7 +234,7 @@ export const useFileExplorer = create<FileExplorerState>((set,get)=>({
 
             //save the new structure
 
-            await saveTemplateData(updatedTemplateData);
+            await saveTemplateData(updateTemplateData);
 
             //sync with web container 
             if (writeFileSync) {
@@ -364,7 +364,8 @@ export const useFileExplorer = create<FileExplorerState>((set,get)=>({
         }
 
     },
-
+     
+    
     updateFileContent: (fileId, content) => {
     set((state) => ({
       openFiles: state.openFiles.map((file) =>
@@ -380,6 +381,180 @@ export const useFileExplorer = create<FileExplorerState>((set,get)=>({
         fileId === state.activeFileId ? content : state.editorContent,
     }));
   },
+
+  handleDeleteFolder:async(folder,parentPath,saveTemplateData) => {
+    const {templateData} = get()
+    if(!templateData) return 
+
+    try {
+        const updatedTemplateData = JSON.parse(
+        JSON.stringify(templateData)
+      ) as TemplateFolder;
+      const pathParts = parentPath.split("/");
+      let currentFolder = updatedTemplateData;
+
+      for (const part of pathParts) {
+        if (part) {
+          const nextFolder = currentFolder.items.find(
+            (item) => "folderName" in item && item.folderName === part
+          ) as TemplateFolder;
+          if (nextFolder) currentFolder = nextFolder;
+        }
+      }
+
+      currentFolder.items = currentFolder.items.filter(
+        (item) =>
+          !("folderName" in item) || item.folderName !== folder.folderName
+        );
+
+      // Close all files in the deleted folder recursively
+      const closeFilesInFolder = (folder: TemplateFolder, currentPath: string = "") => {
+        folder.items.forEach((item) => {
+          if ("filename" in item) {
+            // Generate the correct file ID using the same logic as openFile
+            const fileId = generateFileId(item, templateData);
+            get().closeFile(fileId);
+          } else if ("folderName" in item) {
+            const newPath = currentPath ? `${currentPath}/${item.folderName}` : item.folderName;
+            closeFilesInFolder(item, newPath);
+          }
+        });
+      };
+      
+      closeFilesInFolder(folder, parentPath ? `${parentPath}/${folder.folderName}` : folder.folderName);
+
+      set({ templateData: updatedTemplateData });
+
+      // Use the passed saveTemplateData function
+      await saveTemplateData(updatedTemplateData);
+      toast.success(`Deleted folder: ${folder.folderName}`);
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+      toast.error("Failed to delete folder");
+    }
+  },
+
+
+  handleRenameFile: async (
+    file,
+    newFilename,
+    newExtension,
+    parentPath,
+    saveTemplateData
+  ) => {
+    const { templateData, openFiles, activeFileId } = get();
+    if (!templateData) return;
+
+    // Generate old and new file IDs using the same logic as openFile
+    const oldFileId = generateFileId(file, templateData);
+    const newFile = { ...file, filename: newFilename, fileExtension: newExtension };
+    const newFileId = generateFileId(newFile, templateData);
+
+    try {
+      const updatedTemplateData = JSON.parse(
+        JSON.stringify(templateData)
+      ) as TemplateFolder;
+      const pathParts = parentPath.split("/");
+      let currentFolder = updatedTemplateData;
+
+      for (const part of pathParts) {
+        if (part) {
+          const nextFolder = currentFolder.items.find(
+            (item) => "folderName" in item && item.folderName === part
+          ) as TemplateFolder;
+          if (nextFolder) currentFolder = nextFolder;
+        }
+      }
+
+      const fileIndex = currentFolder.items.findIndex(
+        (item) =>
+          "filename" in item &&
+          item.filename === file.filename &&
+          item.fileExtension === file.fileExtension
+      );
+
+      if (fileIndex !== -1) {
+        const updatedFile = {
+          ...currentFolder.items[fileIndex],
+          filename: newFilename,
+          fileExtension: newExtension,
+        } as TemplateFile;
+        currentFolder.items[fileIndex] = updatedFile;
+
+        // Update open files with new ID and names
+        const updatedOpenFiles = openFiles.map((f) =>
+          f.id === oldFileId
+            ? {
+                ...f,
+                id: newFileId,
+                filename: newFilename,
+                fileExtension: newExtension,
+              }
+            : f
+        );
+
+        set({
+          templateData: updatedTemplateData,
+          openFiles: updatedOpenFiles,
+          activeFileId: activeFileId === oldFileId ? newFileId : activeFileId,
+        });
+
+        // Use the passed saveTemplateData function
+        await saveTemplateData(updatedTemplateData);
+        toast.success(`Renamed file to: ${newFilename}.${newExtension}`);
+      }
+    } catch (error) {
+      console.error("Error renaming file:", error);
+      toast.error("Failed to rename file");
+    }
+  },
+
+  handleRenameFolder: async (folder, newFolderName, newExtension, parentPath, saveTemplateData) => {
+    const { templateData } = get();
+    if (!templateData) return;
+
+    try {
+      const updatedTemplateData = JSON.parse(
+        JSON.stringify(templateData)
+      ) as TemplateFolder;
+      const pathParts = parentPath.split("/");
+      let currentFolder = updatedTemplateData;
+
+      for (const part of pathParts) {
+        if (part) {
+          const nextFolder = currentFolder.items.find(
+            (item) => "folderName" in item && item.folderName === part
+          ) as TemplateFolder;
+          if (nextFolder) currentFolder = nextFolder;
+        }
+      }
+
+      const folderIndex = currentFolder.items.findIndex(
+        (item) => "folderName" in item && item.folderName === folder.folderName
+      );
+
+      if (folderIndex !== -1) {
+        const updatedFolder = {
+          ...currentFolder.items[folderIndex],
+          folderName: newFolderName,
+        } as TemplateFolder;
+        currentFolder.items[folderIndex] = updatedFolder;
+
+        set({ templateData: updatedTemplateData });
+
+        // Use the passed saveTemplateData function
+        await saveTemplateData(updatedTemplateData);
+        toast.success(`Renamed folder to: ${newFolderName}`);
+      }
+    } catch (error) {
+      console.error("Error renaming folder:", error);
+      toast.error("Failed to rename folder");
+    }
+  },
+
+
+
+
 
 
 
