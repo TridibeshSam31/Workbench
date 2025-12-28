@@ -13,8 +13,8 @@ import { TemplateFileTree } from '@/modules/playground/components/playground-exp
 import { useFileExplorer } from '@/modules/playground/hooks/useFileExplorer';
 import { usePlayground } from '@/modules/playground/hooks/usePlayground';
 import { useParams } from 'next/navigation'
-import React, { useEffect }  from 'react'
-import { TemplateFile } from '@/modules/playground/lib/path-to-json';
+import React, { useCallback, useEffect }  from 'react'
+import { TemplateFile, TemplateFolder } from '@/modules/playground/lib/path-to-json';
 import { Button } from '@/components/ui/button';
 import { Bot, FileText, Save, Settings, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -31,7 +31,7 @@ const MainPlaygroundPage = () => {
 
     const {playgroundData,isLoading,templateData,error,saveTemplateData} = usePlayground(id)
      
-    const {activeFileId , closeAllFiles, openFile , openFiles , setTemplateData ,  setPlaygroundId , setActiveFileId,closeFile } = useFileExplorer()
+    const {activeFileId , closeAllFiles, openFile , openFiles , setTemplateData ,  setPlaygroundId , setActiveFileId,closeFile,handleAddFile,handleAddFolder,handleDeleteFile,handleDeleteFolder,handleRenameFile,handleRenameFolder } = useFileExplorer()
 
     const {serverUrl , isLoading:containerLoading , error:containerError , instance , writeFileSync} 
      //@ts-ignore
@@ -48,6 +48,86 @@ const MainPlaygroundPage = () => {
     //for checking purpose 
     console.log("templateData",templateData)
     console.log("playgroundData",playgroundData)
+
+
+    //creating wrapper for the methods that we created in useFileExplorer i.e handleAddFile,handleAddFolder etc because they are requiring setTempleteData in everyField hence we will create a wrapper
+
+    const wrappedHandleAddFile = useCallback((newFile:TemplateFile,parentPath:string)=>{
+      return handleAddFile(
+       newFile,
+       parentPath,
+       writeFileSync,
+       instance,
+       saveTemplateData 
+      )
+    },[handleAddFile,writeFileSync,instance,saveTemplateData])
+
+    //reapper for passing saveTemplateData in addfolder handler
+
+    const wrappeedHandleAddFolder = useCallback((newFolder:TemplateFolder,parentPath:string)=>{
+      return handleAddFolder(newFolder,parentPath,instance,saveTemplateData)
+    },[handleAddFolder,instance,saveTemplateData])
+
+   const wrappedHandleDeleteFile = useCallback(
+    (file: TemplateFile, parentPath: string) => {
+      return handleDeleteFile(file, parentPath, saveTemplateData);
+    },
+    [handleDeleteFile, saveTemplateData]
+  );
+
+  const wrappedHandleDeleteFolder = useCallback(
+    (folder: TemplateFolder, parentPath: string) => {
+      return handleDeleteFolder(folder, parentPath, saveTemplateData);
+    },
+    [handleDeleteFolder, saveTemplateData]
+  );
+
+  const wrappedHandleRenameFile = useCallback(
+    (
+      file: TemplateFile,
+      newFilename: string,
+      newExtension: string,
+      parentPath: string
+    ) => {
+      return handleRenameFile(
+        file,
+        newFilename,
+        newExtension,
+        parentPath,
+        saveTemplateData
+      );
+    },
+    [handleRenameFile, saveTemplateData]
+  );
+
+  const wrappedHandleRenameFolder = useCallback(
+    (folder: TemplateFolder, newFolderName: string, parentPath: string,newExtension:string) => {
+      return handleRenameFolder(
+        folder,
+        newFolderName,
+        parentPath,
+        newExtension,
+        saveTemplateData
+        
+      );
+    },
+    [handleRenameFolder, saveTemplateData]
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   //ui for file exploration
    const activeFile = openFiles.find((file)=>file.id === activeFileId)
    const hasUnsavedChanges = openFiles.some((file)=>file.hasUnsavedChanges)
@@ -67,11 +147,11 @@ const MainPlaygroundPage = () => {
             onFileSelect={handleFileSelect}
             selectedFile={activeFile}
             title="File Explorer"
-            onAddFile={()=>{}}
-            onAddFolder={()=>{}}
-            onDeleteFolder={()=>{}}
-            onRenameFile={()=>{}}
-            onRenameFolder={()=>{}}
+            onAddFile={ wrappedHandleAddFile}
+            onAddFolder={wrappeedHandleAddFolder}
+            onDeleteFolder={wrappedHandleDeleteFolder }
+            onRenameFile={wrappedHandleRenameFile}
+            onRenameFolder={wrappedHandleRenameFolder}
             
             />
             <SidebarInset>
