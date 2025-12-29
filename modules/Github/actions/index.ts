@@ -81,4 +81,14 @@ export async function importGithubRepo(repoFullName:string){
 
 //now we will open tjhe repo accourding to our template structure that will require recursive functions to get the files and folders
 
+export async function cloneRepoToPlayground(repoFullName:string,playgroundTitle:string){
+ const user = await currentUser()
+  if (!user) throw new Error("User not authenticated")
+
+  const account = await getAccountByUserId(user.id!)
+  const octokit = new Octokit({ auth: account.accessToken })
+
+  const [owner, repo] = repoFullName.split("/")
+
+}
 
