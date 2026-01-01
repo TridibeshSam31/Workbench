@@ -126,7 +126,7 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
                 console.warn("Editor model or cursor position is not available.");
                  return currentState;
             }
-            const newState = {...currentState,isLoading:true}
+            const newState = {...currentState, isLoading:true }
 
             //implementing IFFE
             (async () => {
@@ -662,13 +662,7 @@ export function AIStatusIndicator({ enabled, loading, error }: AIStatusIndicator
 
 
 
-How It Works:
 
-As you type, the editor sends context to your AI API
-AI analyzes the code and generates completions
-Suggestions appear inline (gray text)
-Press Tab to accept the suggestion
-Press Ctrl+Space for manual completion
 
 
 
