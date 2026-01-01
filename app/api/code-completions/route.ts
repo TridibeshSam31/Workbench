@@ -338,7 +338,7 @@ Generate suggestion:`
 
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
-    // Replace this with your actual AI service call
+    //codellama we are using it so this localhost is nothing but our ollama that is running locally
     const response = await fetch("http://localhost:11434/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
