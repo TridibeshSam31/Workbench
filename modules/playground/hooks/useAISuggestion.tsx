@@ -101,7 +101,7 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
         setState((prev)=>({...prev,isEnabled:!prev.isEnabled}))
     },[])
 
-
+   
     const fetchSuggestion = useCallback(async(type:string,editor:any)=>{
         //check if suggestions are enabled or not 
         //for that we will use the functional state update to get fresh state
@@ -181,38 +181,8 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
             return newState
         })
     },[])
-
-    const acceptSuggestion = useCallback((editor:any,monaco:any)=>{
-        setState((currentState)=>{
-            if (!currentState.suggestion||!currentState.position||!editor||!monaco) {
-                return currentState
-                
-            }
-
-            const {line,column} = currentState.position
-            const sanitizedSuggestion = currentState.suggestion.replace(/^\d+:\s*/gm, "");
-
-            editor.executeEdits("", [
-          {
-            range: new monaco.Range(line, column, line, column),
-            text: sanitizedSuggestion,
-            forceMoveMarkers: true,
-          },
-          ]);
-
-           // Clear decorations
-         if (editor && currentState.decoration.length > 0) {
-          editor.deltaDecorations(currentState.decoration, []);
-         }
-
-         return {
-          ...currentState,
-          suggestion: null,
-          position: null,
-          decoration: [],
-         };
-        })
-    },[])
+    
+   
 
     const rejectSuggestion = useCallback((editor: any) => {
     setState((currentState) => {
@@ -241,6 +211,40 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
       };
     });
   }, []);
+
+  const acceptSuggestion = useCallback(
+    (editor: any, monaco: any) => {
+      setState((currentState) => {
+        if (!currentState.suggestion || !currentState.position || !editor || !monaco) {
+          return currentState;
+        }
+
+        const { line, column } = currentState.position;
+        const sanitizedSuggestion = currentState.suggestion.replace(/^\d+:\s*/gm, "");
+
+        editor.executeEdits("", [
+          {
+            range: new monaco.Range(line, column, line, column),
+            text: sanitizedSuggestion,
+            forceMoveMarkers: true,
+          },
+        ]);
+
+        // Clear decorations
+        if (editor && currentState.decoration.length > 0) {
+          editor.deltaDecorations(currentState.decoration, []);
+        }
+
+        return {
+          ...currentState,
+          suggestion: null,
+          position: null,
+          decoration: [],
+        };
+      });
+    },
+    []
+  );
 
   return {
     ...state,

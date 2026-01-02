@@ -86,7 +86,7 @@ export async function cloneRepoToPlayground(repoFullName:string,playgroundTitle:
   if (!user) throw new Error("User not authenticated")
 
   const account = await getAccountByUserId(user.id!)
-  const octokit = new Octokit({ auth: account.accessToken })
+  const octokit = new Octokit({ auth: account?.accessToken })
 
   const [owner, repo] = repoFullName.split("/")
 
