@@ -299,6 +299,7 @@ function analyzeCodeContext(content:string,line:number,column:number,fileName:st
     cursorPosition: { line, column },
     isInFunction,
     isInClass,
+    //@ts-ignore
     isAfterComment,
     incompletePatterns,
   }
@@ -339,7 +340,7 @@ Generate suggestion:`
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
     //codellama we are using it so this localhost is nothing but our ollama that is running locally
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const response = await fetch("http://localhost:11434", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
