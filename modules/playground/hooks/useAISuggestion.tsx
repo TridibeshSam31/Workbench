@@ -119,8 +119,8 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
 
             //getting the entire code in the eitor 
             //and getting the position
-            const model = editor.getModel()
-            const cursorPosition = editor.getPosition()
+            const model = editor.getModel
+            const cursorPosition = editor.getPosition 
 
             if (!model||!cursorPosition) {
                 console.warn("Editor model or cursor position is not available.");
@@ -139,7 +139,7 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
                  };
                  console.log("Request payload:", payload);  
 
-                 const response = await fetch("/api/code-suggestion", {
+                 const response = await fetch("/api/code-completions", {
                  method: "POST",
                  headers: { "Content-Type": "application/json" },
                  body: JSON.stringify(payload),

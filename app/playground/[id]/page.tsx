@@ -28,6 +28,7 @@ import { LoadingStep } from '@/modules/playground/components/loader';
 import { toast } from 'sonner';
 import { findFilePath } from '@/modules/playground/lib';
 import ToggleAI from '@/modules/playground/components/toggle-ai';
+import { useAISuggestions } from '@/modules/playground/hooks/useAISuggestion';
 
 
 const MainPlaygroundPage = () => {
@@ -123,6 +124,9 @@ const MainPlaygroundPage = () => {
   );
 
 
+  const aiSuggesdtions = useAISuggestions()
+
+
 
 
 
@@ -199,7 +203,7 @@ const MainPlaygroundPage = () => {
 
            const newTemplateData = await saveTemplateData(updatedTemplateData);
         setTemplateData(newTemplateData || updatedTemplateData);
-// Update open files
+         // Update open files
         const updatedOpenFiles = openFiles.map((f) =>
           f.id === targetFileId
             ? {
@@ -385,9 +389,9 @@ const MainPlaygroundPage = () => {
                   </Tooltip>
                   
                   
-                  <ToggleAI isEnabled ={true}
-                  onToggle={()=>{}}
-                  suggestionLoading={false}/>
+                  <ToggleAI isEnabled ={aiSuggesdtions.isEnabled}
+                  onToggle={aiSuggesdtions.toggleEnabled}
+                  suggestionLoading={aiSuggesdtions.isLoading}/>
 
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -471,6 +475,12 @@ const MainPlaygroundPage = () => {
                           onContentChange={(value)=>{
                             activeFileId&& updateFileContent(activeFileId , value)
                           }}
+                          suggestions={aiSuggesdtions.suggestion}
+                          suggestionLoading={aiSuggesdtions.isLoading}
+                          suggestionPosition={aiSuggesdtions.position}
+                          onAcceptSuggestion={(editor,monaco)=>aiSuggesdtions.acceptSuggestion(editor,monaco)}
+                          onRejectSuggestion={(editor)=> aiSuggesdtions.rejectSuggestion(editor)}
+                          onTriggerSuggestion={(editor,type)=> aiSuggesdtions.fetchSuggestion(type,editor)}
                           
                           
                           />
