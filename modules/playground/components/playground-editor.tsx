@@ -33,7 +33,7 @@ const PlaygroundEditor = ({activeFile,content,onContentChange ,suggestion,onAcce
     
     //we neeed to generate  a unique id for each suggestion in order to track them properly
     const generateSuggestionId = crypto.randomUUID || (()=> Math.random().toString(36).substring(2,15) + Math.random().toString(36).substring(2,15))
-   
+    
 
     //create the inline completion provider
     //this tells monaco how to show the inline suggestions
@@ -339,7 +339,7 @@ const PlaygroundEditor = ({activeFile,content,onContentChange ,suggestion,onAcce
         // Keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => {
       console.log("Ctrl+Space pressed, triggering suggestion")
-      onTriggerSuggestion("completion", editor)
+      onTriggerSuggestion(editor, "completion")
     })
 
     // CRITICAL: Override Tab key with high priority and prevent default Monaco behavior
@@ -429,7 +429,7 @@ const PlaygroundEditor = ({activeFile,content,onContentChange ,suggestion,onAcce
 
         // Trigger suggestion with a delay
         suggestionTimeoutRef.current = setTimeout(() => {
-          onTriggerSuggestion("completion", editor)
+          onTriggerSuggestion(editor, "completion")
         }, 300)
       }
     })
@@ -473,7 +473,7 @@ const PlaygroundEditor = ({activeFile,content,onContentChange ,suggestion,onAcce
         ) {
           setTimeout(() => {
             if (editorRef.current && !currentSuggestionRef.current && !suggestionLoading) {
-              onTriggerSuggestion("completion", editor)
+              onTriggerSuggestion(editor, "completion")
             }
           }, 100) // Small delay to let the change settle
         }

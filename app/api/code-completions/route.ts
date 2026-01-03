@@ -55,7 +55,7 @@ interface CodeContext{
     cursorPosition:{line:number,column:number},
     isInFunction:boolean,
     isInClass:boolean,
-    IsAfterComment:boolean,
+    isAfterComment: boolean,
     incompletePatterns:string[]
 }
 
@@ -66,7 +66,7 @@ export async function POST(request:NextRequest){
 
         const{fileContent,cursorLine,cursorColumn,suggestionType,fileName} = body
 
-        if (!fileContent||cursorLine<0||cursorColumn<0||!suggestionType||!fileName) {
+        if (!fileContent||cursorLine<0||cursorColumn<0||!suggestionType) {
             return NextResponse.json({error:"Invalid Input Parameters"},{status:400})
         }
 
@@ -299,7 +299,7 @@ function analyzeCodeContext(content:string,line:number,column:number,fileName:st
     cursorPosition: { line, column },
     isInFunction,
     isInClass,
-    //@ts-ignore
+    
     isAfterComment,
     incompletePatterns,
   }
@@ -323,7 +323,7 @@ ${context.afterContext}
 Analysis:
 - In Function: ${context.isInFunction}
 - In Class: ${context.isInClass}
-- After Comment: ${context.IsAfterComment}
+- After Comment: ${context.isAfterComment}
 - Incomplete Patterns: ${context.incompletePatterns.join(", ") || "None"}
 
 Instructions:
@@ -340,7 +340,7 @@ Generate suggestion:`
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
     //codellama we are using it so this localhost is nothing but our ollama that is running locally
-    const response = await fetch("http://localhost:11434", {
+    const response = await fetch("http://localhost:11434/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -376,3 +376,8 @@ async function generateSuggestion(prompt: string): Promise<string> {
     return "// AI suggestion unavailable"
   }
 }
+
+
+
+
+

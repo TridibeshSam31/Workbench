@@ -101,7 +101,7 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
         setState((prev)=>({...prev,isEnabled:!prev.isEnabled}))
     },[])
 
-   
+    /*
     const fetchSuggestion = useCallback(async(type:string,editor:any)=>{
         //check if suggestions are enabled or not 
         //for that we will use the functional state update to get fresh state
@@ -119,8 +119,8 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
 
             //getting the entire code in the eitor 
             //and getting the position
-            const model = editor.getModel
-            const cursorPosition = editor.getPosition 
+            const model = editor.getModel()
+            const cursorPosition = editor.getPosition()
 
             if (!model||!cursorPosition) {
                 console.warn("Editor model or cursor position is not available.");
@@ -181,6 +181,69 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
             return newState
         })
     },[])
+    */
+
+    const fetchSuggestion = useCallback(async (type: string, editor: any) => {
+  if (!state.isEnabled) {
+    console.warn("AI suggestions disabled")
+    return
+  }
+
+  if (!editor) {
+    console.warn("Editor instance not available")
+    return
+  }
+
+  const model = editor.getModel()
+  const cursorPosition = editor.getPosition()
+
+  if (!model || !cursorPosition) {
+    console.warn("Editor model or cursor position missing")
+    return
+  }
+
+  setState((prev) => ({ ...prev, isLoading: true }))
+
+  try {
+    const payload = {
+      fileContent: model.getValue(),
+      cursorLine: cursorPosition.lineNumber - 1,
+      cursorColumn: cursorPosition.column - 1,
+      suggestionType: type,
+      
+    }
+
+    const response = await fetch("/api/code-completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.suggestion) {
+      setState((prev) => ({ ...prev, isLoading: false }))
+      return
+    }
+
+    setState((prev) => ({
+      ...prev,
+      suggestion: data.suggestion.trim(),
+      position: {
+        line: cursorPosition.lineNumber,
+        column: cursorPosition.column,
+      },
+      isLoading: false,
+    }))
+  } catch (err) {
+    console.error("AI fetch failed:", err)
+    setState((prev) => ({ ...prev, isLoading: false }))
+  }
+  }, [state.isEnabled])
     
    
 
