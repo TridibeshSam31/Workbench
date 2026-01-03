@@ -339,6 +339,8 @@ Generate suggestion:`
 
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
+    //console.log("🔍 Calling Ollama API...") // ADD THIS
+    //console.log("📍 URL: http://localhost:11434/api/generate") // ADD THIS
     //codellama we are using it so this localhost is nothing but our ollama that is running locally
     const response = await fetch("http://localhost:11434/api/generate", {
       method: "POST",
@@ -353,6 +355,8 @@ async function generateSuggestion(prompt: string): Promise<string> {
         },
       }),
     })
+
+    //console.log("📡 Ollama Response Status:", response.status)
 
     if (!response.ok) {
       throw new Error(`AI service error: ${response.statusText}`)

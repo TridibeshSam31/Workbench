@@ -183,7 +183,7 @@ export const useAISuggestions = ():UseAISuggestionsReturn => {
     },[])
     */
 
-    const fetchSuggestion = useCallback(async (type: string, editor: any) => {
+  const fetchSuggestion = useCallback(async (type: string, editor: any) => {
   if (!state.isEnabled) {
     console.warn("AI suggestions disabled")
     return
