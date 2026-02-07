@@ -1,11 +1,4 @@
-//we are going to add server actions here for github integrattion like commit,push,pull,cole etc
-//we will not be writing apis here we will create server actions methods here that will be light for the whole applications
-
 "use server"
-
-
-//the first thing we have to do is to setup octokit and then we will fetch the user from the github 
-//we have to setup the environment and for that we have to check the repo that will be opening here will be containiong the temoplate i.e react , nextjs ,vue, angular , etc
 
 import { Octokit } from "octokit"
 import { getAccountByUserId } from "@/modules/auth/actions"
@@ -13,97 +6,143 @@ import { currentUser } from "@/modules/auth/actions"
 import { TemplateFolder } from "@/modules/playground/lib/path-to-json"
 import { db } from "@/lib/db"
 
-export async function getGithubUser() {
+/**
+ * Helper function to get authenticated Octokit instance
+ */
+async function getAuthenticatedOctokit() {
   const user = await currentUser()
 
   if (!user) {
-    throw new Error("Unauthorized")
+    throw new Error("Unauthorized - Please sign in")
   }
 
+  // Try to get token from linked GitHub account first
   const account = await getAccountByUserId(user.id!, "github")
-  const token = account?.accessToken || process.env.GITHUB_TOKEN
+  let token = account?.accessToken
+
+  // Fallback to environment variable
+  if (!token) {
+    token = process.env.GITHUB_TOKEN
+  }
 
   if (!token) {
-    throw new Error("Github account not linked and no GITHUB_TOKEN provided")
+    throw new Error(
+      "GitHub authentication failed. Please link your GitHub account or configure GITHUB_TOKEN in environment variables."
+    )
   }
 
-  const octokit = new Octokit({ auth: token })
-  //from octokit we will get the data of the user and OCtokit provides us the method to get the user data
+  // Validate token by checking if it's not empty
+  if (token.trim().length === 0) {
+    throw new Error("GitHub token is empty")
+  }
 
-  const { data } = await octokit.rest.repos.listForAuthenticatedUser({
-    visibility: "all",
-    affiliation: "owner,collaborator,organization_member",
-    per_page: 100
+  return new Octokit({
+    auth: token,
+    userAgent: 'VibeCode-Editor/1.0.0'
   })
-  console.log("Github Repos:", data)
-
-  return data
 }
 
-//function for import the repo from github 
-//after getting the repo we again have to write recursive functions to get the files and folder from the repo asnd the repo must match the template structure
+export async function getGithubUser() {
+  try {
+    const octokit = await getAuthenticatedOctokit()
+
+    // First, verify the token by getting authenticated user info
+    const { data: authUser } = await octokit.rest.users.getAuthenticated()
+
+    console.log("Authenticated GitHub user:", authUser.login)
+
+    // Then fetch repositories
+    const { data } = await octokit.rest.repos.listForAuthenticatedUser({
+      visibility: "all",
+      affiliation: "owner,collaborator,organization_member",
+      per_page: 100,
+      sort: "updated",
+      sort_direction: "desc" as any // Type fix for octokit
+    })
+
+    console.log(`Found ${data.length} repositories`)
+    return data
+  } catch (error: any) {
+    console.error("Error fetching GitHub repos:", error)
+
+    // Provide more specific error messages
+    if (error.status === 401) {
+      throw new Error("GitHub token is invalid or expired. Please reconnect your GitHub account.")
+    } else if (error.status === 403) {
+      throw new Error("GitHub API rate limit exceeded. Please try again later.")
+    } else if (error.message) {
+      throw new Error(`GitHub API error: ${error.message}`)
+    } else {
+      throw new Error("Failed to fetch GitHub repositories")
+    }
+  }
+}
 
 export async function importGithubRepo(repoFullName: string) {
-  const user = await currentUser()
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-  const account = await getAccountByUserId(user.id!, "github")
-  const token = account?.accessToken || process.env.GITHUB_TOKEN
-
-  if (!token) {
-    throw new Error("Github account not linked and no GITHUB_TOKEN provided")
-  }
-
-  const octokit = new Octokit({ auth: token })
-
-  //https://github.com/TridibeshSam31/Vibe-Code-Editor this is the repo link and we can see that there is my github username and then the reponame so we have to split them 
-
-  const [owner, repo] = repoFullName.split("/")
-  const { data: repoData } = await octokit.rest.repos.get({
-    owner,
-    repo
-  })
-
-  const { data: contents } = await octokit.rest.repos.getContent({
-    owner,
-    repo,
-    path: ""
-  })
-
-  //console.log("Repo Data:",repoData)
-  // console.log("Contents:",contents)
-
-  return { repoData, contents }
-
-
-
-}
-
-
-//now we will open tjhe repo accourding to our template structure that will require recursive functions to get the files and folders
-
-export async function cloneRepoToPlayground(repoFullName: string, playgroundTitle: string, branch: string = "main") {
-  const user = await currentUser()
-  if (!user) throw new Error("User not authenticated")
-
-  const account = await getAccountByUserId(user.id!, "github")
-  const token = account?.accessToken || process.env.GITHUB_TOKEN
-  const octokit = new Octokit({ auth: token })
-
-  const [owner, repo] = repoFullName.split("/")
-
   try {
-    //get the repo data
+    const user = await currentUser()
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+
+    const octokit = await getAuthenticatedOctokit()
+    const [owner, repo] = repoFullName.split("/")
+
+    if (!owner || !repo) {
+      throw new Error("Invalid repository name format. Expected: owner/repo")
+    }
+
     const { data: repoData } = await octokit.rest.repos.get({
       owner,
       repo
     })
 
-    //get the default branch 
+    const { data: contents } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: ""
+    })
+
+    return { repoData, contents }
+  } catch (error: any) {
+    console.error("Error importing GitHub repo:", error)
+
+    if (error.status === 404) {
+      throw new Error("Repository not found or you don't have access to it")
+    } else if (error.message) {
+      throw new Error(`Failed to import repository: ${error.message}`)
+    } else {
+      throw new Error("Failed to import repository")
+    }
+  }
+}
+
+export async function cloneRepoToPlayground(
+  repoFullName: string,
+  playgroundTitle: string,
+  branch: string = "main"
+) {
+  const user = await currentUser()
+  if (!user) throw new Error("User not authenticated")
+
+  const octokit = await getAuthenticatedOctokit()
+  const [owner, repo] = repoFullName.split("/")
+
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format")
+  }
+
+  try {
+    // Get repository data
+    const { data: repoData } = await octokit.rest.repos.get({
+      owner,
+      repo
+    })
+
+    // Get default branch
     const defaultBranch = repoData.default_branch || branch
 
-    //get tree structure recursiverly
+    // Get tree structure recursively
     const { data: tree } = await octokit.rest.git.getTree({
       owner,
       repo,
@@ -111,7 +150,7 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
       recursive: "true"
     })
 
-    //during the import the files should not clash with vibecode starters file for that we have to ignore some files
+    // Ignore patterns
     const ignorePatterns = [
       /^\.git\//,
       /^node_modules\//,
@@ -126,55 +165,53 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
       /pnpm-lock\.yaml$/
     ]
 
-    //function to check if the file should be ignored
     const shouldIgnore = (path: string) => {
       return ignorePatterns.some((pattern) => pattern.test(path))
     }
 
-    //build folder structure
+    // Build folder structure
     const templateStructure: TemplateFolder = {
       folderName: repo,
       items: []
     }
 
-    //process tree items
-    const filePromises = tree.tree.filter(item => item.type === "blob" && !shouldIgnore(item.path!)).map(async (item) => {
-      if (!item.path) return null
+    // Process tree items
+    const filePromises = tree.tree
+      .filter(item => item.type === "blob" && !shouldIgnore(item.path!))
+      .map(async (item) => {
+        if (!item.path) return null
 
-      try {
-        //get file content
-        const { data: fileData } = await octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path: item.path,
-          ref: defaultBranch
-        })
-        if ('content' in fileData && fileData.content) {
-          //decode to base64
-          const content = Buffer.from(fileData.content, 'base64').toString('utf-8')
-          return {
+        try {
+          const { data: fileData } = await octokit.rest.repos.getContent({
+            owner,
+            repo,
             path: item.path,
-            content
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to fetch content for ${item.path}:`, error)
-        return null
-      }
-      return null
-    })
+            ref: defaultBranch
+          })
 
-    //build nested folder structure from file paths
+          if ('content' in fileData && fileData.content) {
+            const content = Buffer.from(fileData.content, 'base64').toString('utf-8')
+            return {
+              path: item.path,
+              content
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch content for ${item.path}:`, error)
+          return null
+        }
+        return null
+      })
+
     const fileContents = await Promise.all(filePromises)
     const files = fileContents.filter(Boolean) as { path: string, content: string }[]
 
+    // Build nested folder structure
     files.forEach(file => {
       const pathParts = file.path.split("/")
       const fileName = pathParts.pop()!
-
       let currentLevel = templateStructure.items
 
-      //create folder Structure
       pathParts.forEach((part) => {
         let folder = currentLevel.find(
           (item): item is TemplateFolder => 'folderName' in item && item.folderName === part
@@ -190,7 +227,6 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
         currentLevel = folder.items
       })
 
-      // Add file
       const lastDotIndex = fileName.lastIndexOf('.')
       const name = lastDotIndex === -1 ? fileName : fileName.substring(0, lastDotIndex)
       const extension = lastDotIndex === -1 ? '' : fileName.substring(lastDotIndex + 1)
@@ -205,10 +241,12 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
     // Determine template type
     let templateType: "REACT" | "NEXTJS" | "VUE" | "ANGULAR" | "EXPRESS" | "HONO" = "REACT"
     const packageJsonFile = files.find(f => f.path === "package.json")
+
     if (packageJsonFile) {
       try {
         const packageJson = JSON.parse(packageJsonFile.content)
         const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
+
         if (dependencies["next"]) templateType = "NEXTJS"
         else if (dependencies["vue"]) templateType = "VUE"
         else if (dependencies["@angular/core"]) templateType = "ANGULAR"
@@ -219,7 +257,7 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
       }
     }
 
-    //create playground in db
+    // Create playground in database
     const playground = await db.playground.create({
       data: {
         title: playgroundTitle,
@@ -241,64 +279,62 @@ export async function cloneRepoToPlayground(repoFullName: string, playgroundTitl
       structure: templateStructure,
       templateType
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error cloning repo:", error)
-    throw new Error("Failed to clone repository")
+
+    if (error.status === 404) {
+      throw new Error(`Repository "${repoFullName}" not found or you don't have access`)
+    } else if (error.message) {
+      throw new Error(`Failed to clone repository: ${error.message}`)
+    } else {
+      throw new Error("Failed to clone repository")
+    }
   }
 }
-
 
 export async function getRepoBranches(repoFullName: string) {
-  const user = await currentUser()
-  if (!user) throw new Error("User not authenticated")
+  try {
+    const user = await currentUser()
+    if (!user) throw new Error("User not authenticated")
 
-  const account = await getAccountByUserId(user.id!, "github")
-  const token = account?.accessToken || process.env.GITHUB_TOKEN
+    const octokit = await getAuthenticatedOctokit()
+    const [owner, repo] = repoFullName.split("/")
 
-  if (!token) {
-    throw new Error("Github account not linked and no GITHUB_TOKEN provided")
+    const { data: branches } = await octokit.rest.repos.listBranches({
+      owner,
+      repo,
+      per_page: 100
+    })
+
+    return branches
+  } catch (error: any) {
+    console.error("Error fetching branches:", error)
+    throw new Error(error.message || "Failed to fetch repository branches")
   }
-
-  const octokit = new Octokit({ auth: token })
-  const [owner, repo] = repoFullName.split("/")
-
-  const { data: branches } = await octokit.rest.repos.listBranches({
-    owner,
-    repo,
-    per_page: 100
-  })
-
-  return branches
 }
 
-/*
-  Search public GitHub repositories
-*/
-
 export async function searchGithubRepos(query: string, language?: string) {
-  const user = await currentUser()
-  if (!user) throw new Error("User not authenticated")
+  try {
+    const user = await currentUser()
+    if (!user) throw new Error("User not authenticated")
 
-  const account = await getAccountByUserId(user.id!, "github")
-  const token = account?.accessToken || process.env.GITHUB_TOKEN
+    const octokit = await getAuthenticatedOctokit()
 
-  if (!token) {
-    throw new Error("Github account not linked and no GITHUB_TOKEN provided")
+    let searchQuery = query
+    if (language) {
+      searchQuery += ` language:${language}`
+    }
+
+    const { data } = await octokit.rest.search.repos({
+      q: searchQuery,
+      sort: 'stars',
+      order: 'desc',
+      per_page: 30
+    })
+
+    return data.items
+  } catch (error: any) {
+    console.error("Error searching GitHub repos:", error)
+    throw new Error(error.message || "Failed to search repositories")
   }
-
-  const octokit = new Octokit({ auth: token })
-
-  let searchQuery = query
-  if (language) {
-    searchQuery += ` language:${language}`
-  }
-
-  const { data } = await octokit.rest.search.repos({
-    q: searchQuery,
-    sort: 'stars',
-    order: 'desc',
-    per_page: 30
-  })
-
-  return data.items
 }

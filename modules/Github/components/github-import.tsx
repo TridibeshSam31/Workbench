@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Github, Search, Star, GitBranch, Loader2, ArrowRight } from "lucide-react"
+import { Github, Search, Star, GitBranch, Loader2, ArrowRight, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
     Select,
     SelectContent,
@@ -40,14 +41,26 @@ export const GithubImport = ({ isOpen, onClose }: GithubImportProps) => {
     const [selectedRepo, setSelectedRepo] = useState<any | null>(null)
     const [branches, setBranches] = useState<any[]>([])
     const [selectedBranch, setSelectedBranch] = useState("")
+    const [error, setError] = useState<string | null>(null)
+
+    console.log("GithubImport State:", {
+        hasRepos: repos.length,
+        loading,
+        selectedRepo: selectedRepo?.full_name,
+        branchCount: branches.length,
+        error
+    })
 
     const fetchRepos = async () => {
         setLoading(true)
+        setError(null)
         try {
             const data = await getGithubUser()
             setRepos(data)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching GitHub repos:", error)
+            setError(error.message || "Failed to fetch repositories. Please check your GitHub connection.")
+            toast.error(error.message || "Failed to fetch repositories")
         } finally {
             setLoading(false)
         }
@@ -66,11 +79,14 @@ export const GithubImport = ({ isOpen, onClose }: GithubImportProps) => {
             return
         }
         setLoading(true)
+        setError(null)
         try {
             const data = await searchGithubRepos(query)
             setRepos(data)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error searching GitHub repos:", error)
+            setError(error.message || "Failed to search repositories")
+            toast.error(error.message || "Failed to search repositories")
         } finally {
             setLoading(false)
         }
@@ -79,12 +95,15 @@ export const GithubImport = ({ isOpen, onClose }: GithubImportProps) => {
     const handleSelectRepo = async (repo: any) => {
         setSelectedRepo(repo)
         setLoading(true)
+        setError(null)
         try {
             const branchData = await getRepoBranches(repo.full_name)
             setBranches(branchData)
             setSelectedBranch(repo.default_branch || "main")
-        } catch (error) {
+        } catch (error: any) {
+            console.error("Error fetching branches:", error)
             toast.error("Failed to fetch branches")
+            setError("Failed to fetch branches for this repository.")
         } finally {
             setLoading(false)
         }
@@ -123,70 +142,79 @@ export const GithubImport = ({ isOpen, onClose }: GithubImportProps) => {
                     </DialogDescription>
                 </DialogHeader>
 
-                <Tabs defaultValue="my-repos" className="flex-1 flex flex-col">
-                    <TabsList className="mx-6 mt-4">
-                        <TabsTrigger value="my-repos">My Repositories</TabsTrigger>
-                        <TabsTrigger value="search">Search Public</TabsTrigger>
-                    </TabsList>
+                {error && (
+                    <Alert variant="destructive" className="mx-6 mt-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
 
-                    <TabsContent value="my-repos" className="flex-1 flex flex-col p-0 m-0 overflow-hidden">
-                        <ScrollArea className="flex-1">
-                            {loading && repos.length === 0 ? (
-                                <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-[#E93F3F]" /></div>
-                            ) : (
-                                <div className="flex flex-col">
-                                    {repos.map(repo => (
-                                        <RepoItem
-                                            key={repo.id}
-                                            repo={repo}
-                                            isSelected={selectedRepo?.id === repo.id}
-                                            onSelect={handleSelectRepo}
-                                        />
-                                    ))}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <Tabs defaultValue="my-repos" className="flex-1 flex flex-col overflow-hidden">
+                        <TabsList className="mx-6 mt-4">
+                            <TabsTrigger value="my-repos">My Repositories</TabsTrigger>
+                            <TabsTrigger value="search">Search Public</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="my-repos" className="flex-1 flex flex-col p-0 m-0 overflow-hidden">
+                            <ScrollArea className="flex-1">
+                                {loading && repos.length === 0 ? (
+                                    <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-[#E93F3F]" /></div>
+                                ) : (
+                                    <div className="flex flex-col">
+                                        {repos.map(repo => (
+                                            <RepoItem
+                                                key={repo.id}
+                                                repo={repo}
+                                                isSelected={selectedRepo?.id === repo.id}
+                                                onSelect={handleSelectRepo}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </TabsContent>
+
+                        <TabsContent value="search" className="flex-1 flex flex-col p-0 m-0 overflow-hidden">
+                            <div className="p-4 border-b">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search public repositories..."
+                                        className="pl-9"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                    />
                                 </div>
-                            )}
-                        </ScrollArea>
-                    </TabsContent>
-
-                    <TabsContent value="search" className="flex-1 flex flex-col p-0 m-0 overflow-hidden">
-                        <div className="p-4 border-b">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search public repositories..."
-                                    className="pl-9"
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                />
                             </div>
-                        </div>
-                        <ScrollArea className="flex-1">
-                            {loading && repos.length === 0 ? (
-                                <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-[#E93F3F]" /></div>
-                            ) : (
-                                <div className="flex flex-col">
-                                    {repos.map(repo => (
-                                        <RepoItem
-                                            key={repo.id}
-                                            repo={repo}
-                                            isSelected={selectedRepo?.id === repo.id}
-                                            onSelect={handleSelectRepo}
-                                        />
-                                    ))}
-                                    {repos.length === 0 && !loading && (
-                                        <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                                            <Search className="w-12 h-12 mb-4 opacity-20" />
-                                            <p className="text-sm">Search for awesome public projects to import.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </ScrollArea>
-                    </TabsContent>
-                </Tabs>
+                            <ScrollArea className="flex-1">
+                                {loading && repos.length === 0 ? (
+                                    <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-[#E93F3F]" /></div>
+                                ) : (
+                                    <div className="flex flex-col">
+                                        {repos.map(repo => (
+                                            <RepoItem
+                                                key={repo.id}
+                                                repo={repo}
+                                                isSelected={selectedRepo?.id === repo.id}
+                                                onSelect={handleSelectRepo}
+                                            />
+                                        ))}
+                                        {repos.length === 0 && !loading && (
+                                            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                                                <Search className="w-12 h-12 mb-4 opacity-20" />
+                                                <p className="text-sm">Search for awesome public projects to import.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </TabsContent>
+                    </Tabs>
+                </div>
 
                 {selectedRepo && (
-                    <div className="p-6 border-t bg-muted/20 flex items-center justify-between gap-4">
+                    <div className="p-6 border-t bg-muted/40 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200">
                         <div className="flex flex-col gap-1.5 flex-1">
                             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                                 <GitBranch className="w-3 h-3" /> Select Branch

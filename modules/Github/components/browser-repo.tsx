@@ -11,7 +11,10 @@ interface RepoItemProps {
 export const RepoItem = ({ repo, isSelected, onSelect }: RepoItemProps) => {
     return (
         <div
-            onClick={() => onSelect(repo)}
+            onClick={() => {
+                console.log("RepoItem clicked:", repo.full_name)
+                onSelect(repo)
+            }}
             className={`p-4 border-b cursor-pointer transition-colors hover:bg-muted/50 flex items-center justify-between ${isSelected ? 'bg-muted border-l-4 border-l-[#E93F3F]' : ''
                 }`}
         >
