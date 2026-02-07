@@ -6,7 +6,28 @@
 
 ---
 
-## 🚀 Features
+## � Screenshots
+
+### 🏠 Landing Page
+![Landing Page](./screenshots/landing.png)
+
+### 🔐 Sign In
+![Sign In](./screenshots/signin.png)
+
+### 📊 Dashboard
+![Dashboard](./screenshots/dashboard.png)
+
+### 💻 Editor View
+![Editor View](./screenshots/editor.png)
+
+### 🤖 AI Assistant
+![AI Assistant](./screenshots/ai.png)
+
+---
+
+---
+
+## �🚀 Features
 
 - 🔐 **OAuth Login with NextAuth** – Supports Google & GitHub login.
 - 🎨 **Modern UI** – Built with TailwindCSS & ShadCN UI.
