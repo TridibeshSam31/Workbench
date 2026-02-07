@@ -1,12 +1,10 @@
 # 🧠 Vibecode Editor – where code meets AI, voice, and speed (Version-1)
 
-
-
 **Vibecode Editor** is a blazing-fast, AI-integrated web IDE built entirely in the browser using **Next.js App Router**, **WebContainers**, **Monaco Editor**, and **local LLMs via Ollama**. It offers real-time code execution, an AI-powered chat assistant, and support for multiple tech stacks — all wrapped in a stunning developer-first UI.
 
 ---
 
-## � Screenshots
+## 📸 Screenshots
 
 ### 🏠 Landing Page
 ![Landing Page](./screenshots/landing.png)
@@ -20,14 +18,18 @@
 ### 💻 Editor View
 ![Editor View](./screenshots/editor.png)
 
+### 🖥️ Integrated Terminal
+![Integrated Terminal](./screenshots/terminal.png)
+
 ### 🤖 AI Assistant
 ![AI Assistant](./screenshots/ai.png)
 
----
+### 🧠 Enhanced AI Assistant
+![Enhanced AI Assistant](./screenshots/ai_assistant_new.png)
 
 ---
 
-## �🚀 Features
+## 🚀 Features
 
 - 🔐 **OAuth Login with NextAuth** – Supports Google & GitHub login.
 - 🎨 **Modern UI** – Built with TailwindCSS & ShadCN UI.
@@ -39,16 +41,15 @@
 - ⚙️ **WebContainers Integration** – Instantly run frontend/backend apps right in the browser.
 - 💻 **Terminal with xterm.js** – Fully interactive embedded terminal experience.
 - 🤖 **AI Chat Assistant** – Share files with the AI and get help, refactors, or explanations.
-- 🎤 **Voice Command Support**-
-AI Speech Commands: Control your IDE hands-free.
-Example commands:
-🗣️ “Save” → Saves the current file
-🗣️ “Run” → Executes the current project in WebContainers
-🗣️ “Open terminal” → Opens the built-in terminal
-🗣️ “Create new file” → Generates a blank file instantly
-🗣️ “Stop” → Halts running processes
-
-Built using the Web Speech API with real-time feedback through the AI Assistant
+- 🎤 **Voice Command Support**
+  - **AI Speech Commands**: Control your IDE hands-free.
+  - **Example commands**:
+    - 🗣️ “Save” → Saves the current file
+    - 🗣️ “Run” → Executes the current project in WebContainers
+    - 🗣️ “Open terminal” → Opens the built-in terminal
+    - 🗣️ “Create new file” → Generates a blank file instantly
+    - 🗣️ “Stop” → Halts running processes
+  - Built using the Web Speech API with real-time feedback through the AI Assistant.
 
 ---
 
@@ -75,7 +76,7 @@ Built using the Web Speech API with real-time feedback through the AI Assistant
 ```bash
 git clone https://github.com/your-username/vibecode-editor.git
 cd vibecode-editor
-````
+```
 
 ### 2. Install Dependencies
 
@@ -121,7 +122,6 @@ npm run dev
 
 Visit `http://localhost:3000` in your browser.
 
-
 ---
 
 ## 🎯 Keyboard Shortcuts
@@ -129,10 +129,6 @@ Visit `http://localhost:3000` in your browser.
 * `Ctrl + Space` or `Double Enter`: Trigger AI suggestions
 * `Tab`: Accept AI suggestion
 * `/`: Open Command Palette (if implemented)
-
----
-
-
 
 ---
 
@@ -149,5 +145,3 @@ This project is licensed under the [MIT License](LICENSE).
 * [WebContainers](https://webcontainers.io/)
 * [xterm.js](https://xtermjs.org/)
 * [NextAuth.js](https://next-auth.js.org/)
-
-```
