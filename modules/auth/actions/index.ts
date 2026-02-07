@@ -4,41 +4,18 @@
 
 "use server"
 
-import { db } from "@/lib/db"
-import {auth} from "@/auth"
+import { auth } from "@/auth"
+import { getUserById as _getUserById, getAccountByUserId as _getAccountByUserId } from "./db-actions"
 
-export const getUserById = async(id:string)=>{
-   try {
-     const user = await db.user.findUnique({
-         where:{id},
-         include:{
-             accounts:true,
-         }
-     })
-     return user
-   } catch (error) {
-    console.log(error)
-    return null
-   }
-} 
-
-
-export const getAccountByUserId = async(userId:string)=>{
-    try {
-        const account = await db.account.findFirst({
-            where:{
-                userId,
-            }
-        })
-        return account
-    } catch (error) {
-        console.log(error)
-        return null
-    }
+export const getUserById = async (id: string) => {
+    return await _getUserById(id);
 }
 
+export const getAccountByUserId = async (userId: string, provider?: string) => {
+    return await _getAccountByUserId(userId, provider);
+}
 
-export const currentUser = async()=>{
+export const currentUser = async () => {
     const user = await auth()
     return user?.user;
 }
