@@ -15,7 +15,11 @@
 ### 📊 Dashboard
 ![Dashboard](./screenshots/dashboard.png)
 
-### 💻 Editor View
+### � GitHub Repository Import
+![GitHub Import Modal](./screenshots/github_import_modal.png)
+![GitHub Import Selection](./screenshots/github_import_selection.png)
+
+### �💻 Editor View
 ![Editor View](./screenshots/editor.png)
 
 ### 🖥️ Integrated Terminal
