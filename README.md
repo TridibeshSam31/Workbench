@@ -15,6 +15,11 @@
 ### 📊 Dashboard
 ![Dashboard](./screenshots/dashboard.png)
 
+
+### Templates 
+![Template Selection](./screenshots/template1%20(1).png)
+![Templete Selection Import](./screenshots/template2.png)
+
 ### � GitHub Repository Import
 ![GitHub Import Modal](./screenshots/github_import_modal.png)
 ![GitHub Import Selection](./screenshots/github_import_selection.png)
