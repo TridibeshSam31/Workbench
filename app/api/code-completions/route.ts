@@ -35,7 +35,8 @@ Includes the suggestion,details about the code context,and some metadata(like la
 
 */
 
-import { type NextRequest,NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
 
 //interface for the code data that we will send to ai
 interface CodeSuggestionRequest {
@@ -337,7 +338,55 @@ Generate suggestion:`
 
 }
 
+async function generateOpenAISuggestion(prompt: string): Promise<string> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+  const completion = await openai.chat.completions.create({
+    model,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert code completion engine. Return ONLY the raw code snippet that should be inserted at the cursor position. Do not wrap in markdown fences, backticks, or write explanations.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 300,
+  });
+
+  let suggestion = completion.choices[0]?.message?.content || "";
+
+  if (suggestion.includes("```")) {
+    const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
+    suggestion = codeMatch ? codeMatch[1].trim() : suggestion;
+  }
+
+  suggestion = suggestion.replace(/\|CURSOR\|/g, "").trim();
+  return suggestion;
+}
+
 async function generateSuggestion(prompt: string): Promise<string> {
+  // 1. Try OpenAI if configured (recommended for production/Vercel)
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      return await generateOpenAISuggestion(prompt);
+    } catch (err) {
+      console.error("OpenAI completion error, trying Ollama if available:", err);
+      if (!process.env.OLLAMA_BASE_URL && !process.env.OLLAMA_URL) {
+        return "// AI suggestion unavailable";
+      }
+    }
+  }
+
+  // 2. Fallback to local or remote Ollama
   const ollamaBaseUrl = (
     process.env.OLLAMA_BASE_URL ||
     process.env.OLLAMA_URL ||
@@ -387,6 +436,7 @@ async function generateSuggestion(prompt: string): Promise<string> {
     return "// AI suggestion unavailable";
   }
 }
+
 
 
 

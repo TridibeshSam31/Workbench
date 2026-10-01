@@ -5,11 +5,8 @@
 //conversation memory (history) ko handle krta hai 
 //Frontend → API → AI Model → Response → Frontend
 
-
-
-import { timeStamp } from "console"
-import { NextResponse, NextRequest } from "next/server"
-
+import { NextResponse, NextRequest } from "next/server";
+import OpenAI from "openai";
 
 interface ChatMessage {
     role: "user" | "assistant",
@@ -18,18 +15,25 @@ interface ChatMessage {
 
 interface ChatRequest {
     message: string
-    history: ChatMessage[]
+    history?: ChatMessage[]
+    mode?: string
+    model?: string
+}
+
+interface AIResult {
+    text: string
+    model: string
+    tokens?: number
 }
 
 export async function POST(req: NextRequest) {
     try {
         const body: ChatRequest = await req.json()
-        const { message, history = [] } = body //destructuring the message and history from the body
+        const { message, history = [], model } = body //destructuring the message and history from the body
 
         //validation of the input 'message'
         if (!message || typeof message !== "string") {
             return NextResponse.json({ error: "Message Must be a string" }, { status: 400 })
-
         }
 
         //validate history format
@@ -98,37 +102,22 @@ export async function POST(req: NextRequest) {
   { role: "assistant", content: "Event loop..." }  // 12
   ]
 
-
-
-
-
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         */
 
-     const messages:ChatMessage[] = [
+     const messages: ChatMessage[] = [
         ...recenHistory,
-        {role:"user" , content:message}
+        { role: "user", content: message }
      ]
 
-     //generate Ai response
-     const AiResponse = await generateResponse(messages)
+     //generate Ai response (OpenAI ya Ollama fallback se)
+     const aiResult = await generateResponse(messages, model)
 
      return NextResponse.json({
-        response:AiResponse,
-        timeStamp:new Date().toISOString()
+        response: aiResult.text,
+        model: aiResult.model,
+        tokens: aiResult.tokens,
+        timeStamp: new Date().toISOString()
      })
-
-
 
     } catch (error) {
        console.error("Chat API Error:", error);
@@ -140,6 +129,9 @@ export async function POST(req: NextRequest) {
       {
         error: "Failed to generate AI response",
         details: errorMessage,
+        hint: !process.env.OPENAI_API_KEY
+          ? "Set OPENAI_API_KEY in your environment variables for production AI."
+          : undefined,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -148,27 +140,44 @@ export async function POST(req: NextRequest) {
     }
 }
 
-async function generateResponse(messages:ChatMessage[]):Promise<string>{
-    //main ai call krega yeh function 
-    //isme hum ai ko prompt denge 
-    //system prompt 
-    //system Prompt kya krega 
-    //yeh Ai ka personality + rules define krega 
-    //iske bina 
-    //ai will halucinate, kabhi zyada bolega,kabhi random baatein karta
-    //basically copilot type behaviour laana hai  
+async function generateOpenAIResponse(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  preferredModel?: string
+): Promise<AIResult> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
-    const systemPrompt = `You are a helpful AI coding assistant. You help developers with:
-    - Code explanations and debugging
-    - Best practices and architecture advice  
-    - Writing clean, efficient code
-    -Troubleshooting errors
-    - Code reviews and optimizations
-    -act like a friend and a coding buddy and teach me all the value things+core concepts don't just fix bugs 
+  const selectedModel =
+    preferredModel && preferredModel.startsWith("gpt")
+      ? preferredModel
+      : process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-    Always provide clear, practical answers. Use proper code formatting when showing examples.`;
+  const completion = await openai.chat.completions.create({
+    model: selectedModel,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    ],
+    temperature: 0.7,
+    max_tokens: 1500,
+  });
 
+  return {
+    text: completion.choices[0]?.message?.content || "",
+    model: completion.model || selectedModel,
+    tokens: completion.usage?.total_tokens,
+  };
+}
 
+async function generateOllamaResponse(
+  systemPrompt: string,
+  messages: ChatMessage[]
+): Promise<AIResult> {
     //messages ko combine krenge aur role iss bar user se bdl denge with role as system waise assistant hona chaiye lekin 
     //hum system isisliye bol rhe hai kyonki genAi ke hisab se hum ek order follow krte hai 
     //system  >  developer (optional) >  user  >  assistant
@@ -178,14 +187,10 @@ async function generateResponse(messages:ChatMessage[]):Promise<string>{
    user = sawaal
    assistant = pichhle jawaab (memory)
    
-      
-   
-   
-   
    */
 
    const fullMessages = [
-    {role:"system",content:systemPrompt},
+    { role: "system", content: systemPrompt },
     ...messages
    ]
 
@@ -232,19 +237,54 @@ async function generateResponse(messages:ChatMessage[]):Promise<string>{
       throw new Error("No response from AI model");
     }
 
-    return data.response.trim();
+    return {
+      text: data.response.trim(),
+      model: ollamaModel,
+    };
   } catch (error) {
     console.error("AI generation error:", error);
     throw new Error("Failed to generate AI response");
   }
-   
-
-
-
-
-
 }
 
+async function generateResponse(
+  messages: ChatMessage[],
+  preferredModel?: string
+): Promise<AIResult> {
+    //main ai call krega yeh function 
+    //isme hum ai ko prompt denge 
+    //system prompt 
+    //system Prompt kya krega 
+    //yeh Ai ka personality + rules define krega 
+    //iske bina 
+    //ai will halucinate, kabhi zyada bolega,kabhi random baatein karta
+    //basically copilot type behaviour laana hai  
+
+    const systemPrompt = `You are a helpful AI coding assistant. You help developers with:
+    - Code explanations and debugging
+    - Best practices and architecture advice  
+    - Writing clean, efficient code
+    -Troubleshooting errors
+    - Code reviews and optimizations
+    -act like a friend and a coding buddy and teach me all the value things+core concepts don't just fix bugs 
+
+    Always provide clear, practical answers. Use proper code formatting when showing examples.`;
+
+    // 1. Agar OpenAI key di hui hai to OpenAI use karo (Vercel Production ke liye)
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        return await generateOpenAIResponse(systemPrompt, messages, preferredModel);
+      } catch (openaiErr) {
+        console.error("OpenAI generation failed, falling back to Ollama if configured:", openaiErr);
+        if (!process.env.OLLAMA_BASE_URL && !process.env.OLLAMA_URL) {
+          throw openaiErr;
+        }
+      }
+    }
+
+    // 2. Local ya custom Ollama instance pe fallback
+    return await generateOllamaResponse(systemPrompt, messages);
+}
 
 //ek hum enhancePrompt bhi daal skte hai jisse hum ai ki help se user jo prompt dega usko refine kr skte hai  
 //usme bhi same hi kaam krna pdegaaa jaise abhi system prompt diya hhai waise hi 
