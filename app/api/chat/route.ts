@@ -196,14 +196,25 @@ async function generateResponse(messages:ChatMessage[]):Promise<string>{
   .map((msg) => `${msg.role}: ${msg.content}`)
   .join("\n\n")
 
+  const ollamaBaseUrl = (
+    process.env.OLLAMA_BASE_URL ||
+    process.env.OLLAMA_URL ||
+    "http://localhost:11434"
+  ).replace(/\/$/, "");
+  const ollamaModel = process.env.OLLAMA_MODEL || "codellama:latest";
+
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+    const response = await fetch(`${ollamaBaseUrl}/api/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      signal: controller.signal,
       body: JSON.stringify({
-        model: "codellama:latest",
+        model: ollamaModel,
         prompt: prompt,
         stream: false,
         options: {
@@ -213,6 +224,7 @@ async function generateResponse(messages:ChatMessage[]):Promise<string>{
         },
       }),
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 

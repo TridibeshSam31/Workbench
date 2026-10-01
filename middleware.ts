@@ -1,12 +1,12 @@
 import NextAuth from "next-auth"
-import { DEFAULT_LOGIN_REDIRECT,apiAuthPrefix,publicRoutes,authRoutes } from "./routes"
-
+import { DEFAULT_LOGIN_REDIRECT, apiAuthPrefix, publicRoutes, authRoutes } from "./routes"
 import authConfig from "./auth.config"
 
-const {auth} = NextAuth(authConfig) //passing all the providers from authconfig to nextauth
+const { auth } = NextAuth(authConfig)
 
-export default auth((req)=>{
-    const {nextUrl} = req
+export default auth((req) => {
+
+    const { nextUrl } = req
     const isLoggedIn = !!req.auth
 
     const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
@@ -16,7 +16,7 @@ export default auth((req)=>{
 
     const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
-    if(isApiAuthRoute){
+    if (isApiAuthRoute) {
         return null;
 
     }//If the request is for /api/auth/..., allow it through (NextAuth handles these internally).
@@ -24,16 +24,16 @@ export default auth((req)=>{
 
     //If the route is a login/register page and the user is already logged in, redirect them to the dashboard (DEFAULT_LOGIN_REDIRECT).
     //If not logged in, allow them to access login/register.
-    if(isAuthRoute){
-        if(isLoggedIn){
-            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT,req.url))
+    if (isAuthRoute) {
+        if (isLoggedIn) {
+            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, req.url))
         }
         return null
     }
 
     //If the user is not logged in and the route is not public, redirect them to the login page (/auth/sign-in).
-    if(!isLoggedIn && !isPublicRoute){
-        return Response.redirect(new URL("/auth/sign-in",nextUrl))
+    if (!isLoggedIn && !isPublicRoute) {
+        return Response.redirect(new URL("/auth/sign-in", nextUrl))
     }
 
     return null //If none of the above applies, just allow the request.
@@ -44,6 +44,7 @@ export default auth((req)=>{
 export const config = {
     matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"]
 }
+
 
 
 

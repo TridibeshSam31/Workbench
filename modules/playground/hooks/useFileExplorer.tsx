@@ -90,7 +90,6 @@ interface FileExplorerState{
  handleRenameFolder:(
     folder:TemplateFolder,
     newFoldername:string,
-    newExtension:string,
     parentPath:string,
     saveTemplateData:(data:TemplateFolder) => Promise<void>
  ) => Promise<void>
@@ -509,7 +508,7 @@ export const useFileExplorer = create<FileExplorerState>((set,get)=>({
     }
   },
 
-  handleRenameFolder: async (folder, newFolderName, newExtension, parentPath, saveTemplateData) => {
+  handleRenameFolder: async (folder, newFolderName, parentPath, saveTemplateData) => {
     const { templateData } = get();
     if (!templateData) return;
 

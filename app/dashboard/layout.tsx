@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     
     starred:false,
     icon:technologyIconMap[item.template] || "Code2" //code2 for default for template not found
-  }))
+  })) ?? [];
         
     return(
         <SidebarProvider>

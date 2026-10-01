@@ -3,6 +3,10 @@ import { currentUser } from "@/modules/auth/actions"
 import { getAccountByUserId } from "@/modules/auth/actions"
 
 export async function GET() {
+    if (process.env.NODE_ENV === "production") {
+        return new NextResponse(null, { status: 404 });
+    }
+
     try {
         const user = await currentUser()
 

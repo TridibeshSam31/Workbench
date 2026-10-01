@@ -604,10 +604,11 @@ Data → Blob → Local URL → Download
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
-                            code: ({ children, className, inline }) => {
-                              if (inline) {
+                            code: ({ children, className, ...props }: any) => {
+                              const isInline = !className;
+                              if (isInline) {
                                 return (
-                                  <code className="bg-zinc-800 px-1 py-0.5 rounded text-sm">
+                                  <code className="bg-zinc-800 px-1 py-0.5 rounded text-sm" {...props}>
                                     {children}
                                   </code>
                                 );
@@ -615,7 +616,7 @@ Data → Blob → Local URL → Download
                               return (
                                 <div className="bg-zinc-800 rounded-lg p-4 my-4">
                                   <pre className="text-sm text-zinc-100 overflow-x-auto">
-                                    <code className={className}>{children}</code>
+                                    <code className={className} {...props}>{children}</code>
                                   </pre>
                                 </div>
                               );

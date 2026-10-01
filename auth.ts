@@ -1,5 +1,4 @@
 import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { db } from "./lib/db"
 import authConfig from "./auth.config"
 import { getUserById, getAccountByUserId } from "./modules/auth/actions/db-actions"
@@ -7,6 +6,7 @@ import { getUserById, getAccountByUserId } from "./modules/auth/actions/db-actio
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
+
     async signIn({ user, account }) {
       if (!user || !account) return false
 
@@ -94,19 +94,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async jwt({ token }) {
-      if (!token.sub) return token;
-      const existingUser = await getUserById(token.sub)
+      if (!token.sub && !token.email) return token;
+
+      let existingUser = null;
+      if (token.sub) {
+        existingUser = await getUserById(token.sub);
+      }
+      if (!existingUser && token.email) {
+        existingUser = await db.user.findUnique({
+          where: { email: token.email },
+        });
+      }
 
       if (!existingUser) return token;
 
-      const exisitingAccount = await getAccountByUserId(existingUser.id);
-
+      token.sub = existingUser.id;
       token.name = existingUser.name;
       token.email = existingUser.email;
       token.role = existingUser.role;
 
       return token;
-
     },
     async session({ session, token }) {
       // Attach the user ID from the token to the session
@@ -123,8 +130,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   },
 
-  secret: process.env.AUTH_SECRET,
-  adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
   ...authConfig
 })

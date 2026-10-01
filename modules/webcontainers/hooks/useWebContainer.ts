@@ -69,8 +69,9 @@ export const useWebContainer = ({templateData}:UseWebContainerProps) => {
             const folderPath = pathParts.slice(0,-1).join("/")
 
             if (folderPath) {
-                await instance.fs.writeFile(path,content)
+                await instance.fs.mkdir(folderPath, { recursive: true })
             }
+            await instance.fs.writeFile(path, content)
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Failed To write file"
             console.error(`failed to write file at ${path}:`,error)

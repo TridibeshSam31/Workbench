@@ -338,15 +338,23 @@ Generate suggestion:`
 }
 
 async function generateSuggestion(prompt: string): Promise<string> {
+  const ollamaBaseUrl = (
+    process.env.OLLAMA_BASE_URL ||
+    process.env.OLLAMA_URL ||
+    "http://localhost:11434"
+  ).replace(/\/$/, "");
+  const ollamaModel = process.env.OLLAMA_MODEL || "codellama:latest";
+
   try {
-    //console.log("🔍 Calling Ollama API...") // ADD THIS
-    //console.log("📍 URL: http://localhost:11434/api/generate") // ADD THIS
-    //codellama we are using it so this localhost is nothing but our ollama that is running locally
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(`${ollamaBaseUrl}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
-        model: "codellama:latest",
+        model: ollamaModel,
         prompt,
         stream: false,
         options: {
@@ -354,30 +362,29 @@ async function generateSuggestion(prompt: string): Promise<string> {
           max_tokens: 300,
         },
       }),
-    })
-
-    //console.log("📡 Ollama Response Status:", response.status)
+    });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`AI service error: ${response.statusText}`)
+      throw new Error(`AI service error: ${response.statusText}`);
     }
 
-    const data = await response.json()
-    let suggestion = data.response
+    const data = await response.json();
+    let suggestion = data.response;
 
     // Clean up the suggestion
     if (suggestion.includes("```")) {
-      const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/)
-      suggestion = codeMatch ? codeMatch[1].trim() : suggestion
+      const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
+      suggestion = codeMatch ? codeMatch[1].trim() : suggestion;
     }
 
     // Remove cursor markers if present
-    suggestion = suggestion.replace(/\|CURSOR\|/g, "").trim()
+    suggestion = suggestion.replace(/\|CURSOR\|/g, "").trim();
 
-    return suggestion
+    return suggestion;
   } catch (error) {
-    console.error("AI generation error:", error)
-    return "// AI suggestion unavailable"
+    console.error("AI generation error:", error);
+    return "// AI suggestion unavailable";
   }
 }
 

@@ -110,14 +110,12 @@ const MainPlaygroundPage = () => {
   );
 
   const wrappedHandleRenameFolder = useCallback(
-    (folder: TemplateFolder, newFolderName: string, parentPath: string,newExtension:string) => {
+    (folder: TemplateFolder, newFolderName: string, parentPath: string) => {
       return handleRenameFolder(
         folder,
         newFolderName,
         parentPath,
-        newExtension,
         saveTemplateData
-        
       );
     },
     [handleRenameFolder, saveTemplateData]
@@ -201,8 +199,8 @@ const MainPlaygroundPage = () => {
           }
         }
 
-           const newTemplateData = await saveTemplateData(updatedTemplateData);
-        setTemplateData(newTemplateData || updatedTemplateData);
+        await saveTemplateData(updatedTemplateData);
+        setTemplateData(updatedTemplateData);
          // Update open files
         const updatedOpenFiles = openFiles.map((f) =>
           f.id === targetFileId
@@ -260,7 +258,7 @@ const MainPlaygroundPage = () => {
     
 
    useEffect(()=>{
-    const handleKeyDown = (e:keyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey&&e.key ==="s") {
         e.preventDefault()
         handleSave()
@@ -348,7 +346,7 @@ const MainPlaygroundPage = () => {
             onDeleteFolder={wrappedHandleDeleteFolder }
             onRenameFile={wrappedHandleRenameFile}
             onRenameFolder={wrappedHandleRenameFolder}
-            onDelteFile={wrappedHandleDeleteFile}
+            onDeleteFile={wrappedHandleDeleteFile}
             
             />
             <SidebarInset>
@@ -475,7 +473,7 @@ const MainPlaygroundPage = () => {
                           onContentChange={(value)=>{
                             activeFileId&& updateFileContent(activeFileId , value)
                           }}
-                          suggestions={aiSuggesdtions.suggestion}
+                          suggestion={aiSuggesdtions.suggestion}
                           suggestionLoading={aiSuggesdtions.isLoading}
                           suggestionPosition={aiSuggesdtions.position}
                           onAcceptSuggestion={(editor,monaco)=>aiSuggesdtions.acceptSuggestion(editor,monaco)}

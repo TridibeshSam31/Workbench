@@ -94,19 +94,19 @@ export const createPlayground = async(data:{
     title: string;
     template: "REACT" | "NEXTJS" | "EXPRESS" | "VUE" | "HONO" | "ANGULAR";
     description?: string;
- //what we did here is that we are creating the playground for that this will accept the data of title , template and description
 })=>{
- //only the currently logined user will be able to create a playground
  const user = await currentUser();
+ if (!user?.id) {
+     throw new Error("Unauthorized - Please sign in");
+ }
  const {template,title,description} = data
    try {
-     
      const playground = await db.playground.create({
         data:{
             title:title,
             description:description,
             template:template,
-            userId:user?.id!,
+            userId:user.id,
         }
 
      })
@@ -119,13 +119,24 @@ export const createPlayground = async(data:{
 }
 
 export const deletePlayground = async(id:string)=>{
+    const user = await currentUser();
+    if (!user?.id) throw new Error("Unauthorized");
+
     try {
+        const playground = await db.playground.findUnique({
+            where: { id },
+            select: { userId: true },
+        });
+        if (!playground || playground.userId !== user.id) {
+            throw new Error("Unauthorized - You cannot delete this playground");
+        }
+
         await db.playground.delete({
             where:{
                 id:id,
             }
         })
-        revalidatePath("/dashboard") //this will only show the fresh data
+        revalidatePath("/dashboard")
     } catch (error) {
         console.log(error)
     }
@@ -135,7 +146,18 @@ export const editProjectById = async(id:string,data:{
     title: string,
     description:string
 })=>{
+    const user = await currentUser();
+    if (!user?.id) throw new Error("Unauthorized");
+
     try {
+        const playground = await db.playground.findUnique({
+            where: { id },
+            select: { userId: true },
+        });
+        if (!playground || playground.userId !== user.id) {
+            throw new Error("Unauthorized - You cannot edit this playground");
+        }
+
         await db.playground.update({
             where:{
                 id:id,
@@ -152,13 +174,17 @@ export const editProjectById = async(id:string,data:{
 
 
 export const duplicateProjectById = async(id:string)=>{
+    const user = await currentUser();
+    if (!user?.id) throw new Error("Unauthorized");
+
     try {
-        //get the originalPlayground by its id
         const originalPlayground = await db.playground.findUnique({
             where:{
                 id,
+            },
+            include: {
+                templateFiles: true,
             }
-            //we will be adding template files here
         })
         if(!originalPlayground){
             throw new Error("Original Playground Not Found")
@@ -168,9 +194,19 @@ export const duplicateProjectById = async(id:string)=>{
                 title:`${originalPlayground.title} (Copy)`,
                 description:originalPlayground.description,
                 template:originalPlayground.template,
-                 userId: originalPlayground.userId,
+                userId: user.id,
             }
         })
+
+        if (originalPlayground.templateFiles?.length > 0 && originalPlayground.templateFiles[0].content) {
+            await db.templateFile.create({
+                data: {
+                    playgroundId: duplicatePlayground.id,
+                    content: originalPlayground.templateFiles[0].content as any,
+                }
+            })
+        }
+
         revalidatePath("/dashboard")
         return duplicatePlayground
     } catch (error) {

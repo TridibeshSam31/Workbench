@@ -26,9 +26,17 @@ export const getPlaygroundById = async(id:string)=>{
 
 export const SaveUpdatedCode = async(playgroundId:string,data:TemplateFolder)=>{
     const user = await currentUser()
-    if(!user) return null
+    if(!user?.id) return null
     
     try {
+        const playground = await db.playground.findUnique({
+            where: { id: playgroundId },
+            select: { userId: true }
+        })
+        if (!playground || playground.userId !== user.id) {
+            throw new Error("Unauthorized: You do not own this playground")
+        }
+
         const updatedPlayground = await db.templateFile.upsert({
             where:{
                 playgroundId
