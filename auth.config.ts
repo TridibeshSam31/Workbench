@@ -32,6 +32,12 @@ if (!githubClientId || !githubClientSecret) {
 }
 
 export default {
+    // trustHost is REQUIRED for Vercel deployments.
+    // Vercel uses the x-forwarded-host header to determine the actual URL.
+    // Without this, Auth.js v5 defaults to "https://authjs.dev" as the issuer
+    // for OAuth state JWTs, causing the "expected: https://authjs.dev" error on callback.
+    trustHost: true,
+
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     session: { strategy: "jwt" },
     providers: [
@@ -46,4 +52,3 @@ export default {
         })
     ]
 } satisfies NextAuthConfig 
-
