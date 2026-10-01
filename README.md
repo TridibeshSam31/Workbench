@@ -1,6 +1,6 @@
-# 🧠 Vibecode Editor – where code meets AI, voice, and speed (Version-1)
+# 🧠 Workbench – A browser IDE with integrated AI assistance, terminal, voice commands, and real-time code execution. (Version-1)
 
-**Vibecode Editor** is a blazing-fast, AI-integrated web IDE built entirely in the browser using **Next.js App Router**, **WebContainers**, **Monaco Editor**, and **local LLMs via Ollama**. It offers real-time code execution, an AI-powered chat assistant, and support for multiple tech stacks — all wrapped in a stunning developer-first UI.
+** Workbench**is a browser-native IDE built with Next.js, WebContainers, Monaco Editor, and Ollama. It provides real-time code execution, local AI assistance, an integrated terminal, GitHub repository import, and voice-powered commands—all within a single development environment.
 
 ---
 
@@ -138,12 +138,31 @@ Visit `http://localhost:3000` in your browser.
 * `Ctrl + Space` or `Double Enter`: Trigger AI suggestions
 * `Tab`: Accept AI suggestion
 * `/`: Open Command Palette (if implemented)
+  
 
 ---
 
-## 📄 License
+### AI Project Review
 
-This project is licensed under the [MIT License](LICENSE).
+Workbench will include a **Review this project** button that scans the current project files and gives a structured AI review.
+
+The review will check for:
+
+- bugs and broken logic
+- security issues
+- missing environment variables
+- bad or confusing folder structure
+- code quality improvements
+- deployment readiness checklist
+
+ ---
+
+## 📄 License
+Copyright © 2026 Tridibesh Samantroy.
+
+This project is owned by Tridibesh Samantroy. All rights reserved unless explicit permission is provided by the owner.
+
+See [LICENSE](./LICENSE) for details.
 
 ---
 
