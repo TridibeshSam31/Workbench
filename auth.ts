@@ -1,28 +1,69 @@
 import NextAuth from "next-auth"
 import { db } from "./lib/db"
 import authConfig from "./auth.config"
-import { getUserById, getAccountByUserId } from "./modules/auth/actions/db-actions"
+import { getUserById } from "./modules/auth/actions/db-actions"
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
 
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
+      // Guard: account must exist
       if (!user || !account) return false
 
       try {
-        const existingUser = await db.user.findUnique({
+        // GitHub users can have private email (null).
+        // Fall back to a deterministic placeholder so Prisma never gets undefined.
+        const resolvedEmail =
+          user.email ??
+          (profile && "login" in profile
+            ? `${(profile as { login: string }).login}@users.noreply.github.com`
+            : null)
+
+        if (!resolvedEmail) {
+          // Cannot identify user without any email – deny sign-in
+          console.error("[AUTH] signIn blocked: no email and no GitHub login in profile")
+          return false
+        }
+
+        // Look up by email OR by existing OAuth account (handles re-auth without email)
+        const existingAccount = await db.account.findUnique({
           where: {
-            email: user.email ?? undefined,
-          }
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          include: { user: true },
+        })
+
+        if (existingAccount) {
+          // Account already linked — update tokens and allow sign-in
+          await db.account.update({
+            where: { id: existingAccount.id },
+            data: {
+              refreshToken: account.refresh_token,
+              accessToken: account.access_token,
+              expiresAt: account.expires_at,
+              tokenType: account.token_type,
+              scope: account.scope,
+              idToken: account.id_token,
+            },
+          })
+          return true
+        }
+
+        // No account yet — find user by email
+        const existingUser = await db.user.findUnique({
+          where: { email: resolvedEmail },
         })
 
         if (!existingUser) {
-          // New User
+          // New User: create user + account together
           const newUser = await db.user.create({
             // @ts-ignore
             data: {
-              email: user.email ?? "",
+              email: resolvedEmail,
               name: user.name,
               image: user.image,
               accounts: {
@@ -40,52 +81,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   sessionState: account.session_state,
                 },
               },
-            }
-          });
+            },
+          })
           return !!newUser
         } else {
-          // Existing User - check for account
-          const existingAccount = await db.account.findUnique({
-            where: {
-              provider_providerAccountId: {
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-              },
-            }
+          // Existing User — link this new OAuth account to them
+          await db.account.create({
+            data: {
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refreshToken: account.refresh_token,
+              accessToken: account.access_token,
+              expiresAt: account.expires_at,
+              tokenType: account.token_type,
+              scope: account.scope,
+              idToken: account.id_token,
+              // @ts-ignore
+              sessionState: account.session_state,
+            },
           })
-
-          if (!existingAccount) {
-            // Link new account to existing user
-            await db.account.create({
-              data: {
-                userId: existingUser.id,
-                type: account.type,
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                refreshToken: account.refresh_token,
-                accessToken: account.access_token,
-                expiresAt: account.expires_at,
-                tokenType: account.token_type,
-                scope: account.scope,
-                idToken: account.id_token,
-                // @ts-ignore
-                sessionState: account.session_state,
-              },
-            })
-          } else {
-            // Update existing account tokens
-            await db.account.update({
-              where: { id: existingAccount.id },
-              data: {
-                refreshToken: account.refresh_token,
-                accessToken: account.access_token,
-                expiresAt: account.expires_at,
-                tokenType: account.token_type,
-                scope: account.scope,
-                idToken: account.id_token,
-              }
-            })
-          }
           return true
         }
       } catch (error) {
@@ -93,6 +109,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false
       }
     },
+
     async jwt({ token }) {
       if (!token.sub && !token.email) return token;
 
@@ -115,6 +132,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return token;
     },
+
     async session({ session, token }) {
       // Attach the user ID from the token to the session
       if (token.sub && session.user) {
