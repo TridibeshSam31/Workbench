@@ -45,22 +45,21 @@ const AddNewButton = () => {
   }
 
   return (
-    <>
+    <div className="w-full h-full">
       <div
         onClick={() => setIsModalOpen(true)}
-        className="group px-6 py-6 flex flex-row justify-between items-center border rounded-lg bg-muted cursor-pointer 
+        className="group px-6 py-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] items-center justify-between gap-4 border rounded-xl bg-card hover:bg-card/80 cursor-pointer 
         transition-all duration-300 ease-in-out
-        hover:bg-background hover:border-[#E93F3F] hover:scale-[1.02]
-        shadow-[0_2px_10px_rgba(0,0,0,0.08)]
-        hover:shadow-[0_10px_30px_rgba(233,63,63,0.15)]"
+        hover:border-[#E93F3F] hover:scale-[1.02]
+        shadow-sm hover:shadow-[0_10px_30px_rgba(233,63,63,0.15)] h-full"
       >
-        <div className="flex flex-row justify-center items-start gap-4">
+        <div className="grid grid-cols-[auto_1fr] items-center gap-4">
           <Button
             variant={"outline"}
-            className="flex justify-center items-center bg-white group-hover:bg-[#fff8f8] group-hover:border-[#E93F3F] group-hover:text-[#E93F3F] transition-colors duration-300"
+            className="flex justify-center items-center bg-white dark:bg-zinc-900 group-hover:bg-[#fff8f8] dark:group-hover:bg-zinc-800 group-hover:border-[#E93F3F] group-hover:text-[#E93F3F] transition-colors duration-300"
             size={"icon"}
           >
-            <Plus size={30} className="transition-transform duration-300 group-hover:rotate-90" />
+            <Plus size={24} className="transition-transform duration-300 group-hover:rotate-90" />
           </Button>
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-[#e93f3f]">Add New</h1>
@@ -68,24 +67,25 @@ const AddNewButton = () => {
           </div>
         </div>
 
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden justify-self-end">
           <Image
             src={"/add-new.svg"}
             alt="Create new playground"
-            width={150}
-            height={150}
+            width={140}
+            height={140}
             className="transition-transform duration-300 group-hover:scale-110"
           />
         </div>
       </div>
 
-       <TemplateSelectingModel
+      <TemplateSelectingModel
         isOpen={isModalOpen}
-        onClose={()=>setIsModalOpen(false)}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
-        />// Implemented Template Selecting Model here
-    </>
+      />
+    </div>
   )
+
 }
 
 export default AddNewButton
