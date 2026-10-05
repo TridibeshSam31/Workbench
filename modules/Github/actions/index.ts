@@ -38,7 +38,7 @@ async function getAuthenticatedOctokit() {
 
   return new Octokit({
     auth: token,
-    userAgent: 'VibeCode-Editor/1.0.0'
+    userAgent: 'Workbench/1.0.0'
   })
 }
 

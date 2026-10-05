@@ -32,16 +32,17 @@ export function Header() {
                   <Link
                     href="/"
                     className="flex items-center gap-2 justify-center"
+                    aria-label="Workbench"
                   >
                     <Image
                       src={"/logo.svg"}
-                      alt="Logo"
+                      alt="Workbench"
                       height={60}
                       width={60}
                     />
 
                     <span className="hidden sm:block font-extrabold text-lg">
-                      VibeCode Editor
+                      Workbench
                     </span>
                   </Link>
                   <span className="text-zinc-300 dark:text-zinc-700">|</span>

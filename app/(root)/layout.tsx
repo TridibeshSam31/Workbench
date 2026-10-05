@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils"
 
 
 
-export const metadata: Metadata ={
-    title:{
-        template:"VibeCode-Editor",
-        default:"Code Editor For VibeCoders-VibeCode"
-    }
+export const metadata: Metadata = {
+    title: {
+        template: "%s | Workbench",
+        default: "Workbench"
+    },
+    description: "Workbench is a powerful developer workspace built to help you build, debug, test, and ship software faster. Bring your tools, workflows, and intelligent development capabilities together in one seamless environment."
 }
 
 
