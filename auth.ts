@@ -113,37 +113,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token }) {
       if (!token.sub && !token.email) return token;
 
-      let existingUser = null;
-      if (token.sub) {
-        existingUser = await getUserById(token.sub);
+      try {
+        let existingUser = null;
+        if (token.sub) {
+          existingUser = await getUserById(token.sub);
+        }
+        if (!existingUser && token.email) {
+          existingUser = await db.user.findUnique({
+            where: { email: token.email },
+          });
+        }
+
+        if (!existingUser) return token;
+
+        token.sub = existingUser.id;
+        token.name = existingUser.name;
+        token.email = existingUser.email;
+        token.role = existingUser.role;
+
+        return token;
+      } catch (error) {
+        console.error("[AUTH] Error in jwt callback:", error);
+        return token;
       }
-      if (!existingUser && token.email) {
-        existingUser = await db.user.findUnique({
-          where: { email: token.email },
-        });
-      }
-
-      if (!existingUser) return token;
-
-      token.sub = existingUser.id;
-      token.name = existingUser.name;
-      token.email = existingUser.email;
-      token.role = existingUser.role;
-
-      return token;
     },
 
     async session({ session, token }) {
-      // Attach the user ID from the token to the session
-      if (token.sub && session.user) {
-        session.user.id = token.sub
-      }
+      try {
+        // Attach the user ID from the token to the session
+        if (token.sub && session.user) {
+          session.user.id = token.sub;
+        }
 
-      if (token.sub && session.user) {
-        session.user.role = token.role
-      }
+        if (token.role && session.user) {
+          session.user.role = token.role;
+        }
 
-      return session;
+        return session;
+      } catch (error) {
+        console.error("[AUTH] Error in session callback:", error);
+        return session;
+      }
     },
 
   },

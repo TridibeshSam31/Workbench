@@ -24,6 +24,12 @@ const googleClientSecret =
     process.env.AUTH_GOOGLE_SECRET ||
     process.env.GOOGLE_SECRET;
 
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+if (!authSecret) {
+    console.warn("[AUTH CONFIG] WARNING: Neither AUTH_SECRET nor NEXTAUTH_SECRET is defined in environment variables.");
+}
+
 if (!githubClientId || !githubClientSecret) {
     console.warn("[AUTH CONFIG] GitHub OAuth credentials status:", {
         hasClientId: !!githubClientId,
@@ -31,24 +37,26 @@ if (!githubClientId || !githubClientSecret) {
     });
 }
 
+const providers = [
+    Github({
+        clientId: githubClientId,
+        clientSecret: githubClientSecret,
+        authorization: { params: { scope: "read:user user:email repo" } },
+    }),
+    ...(googleClientId && googleClientSecret
+        ? [
+            Google({
+                clientId: googleClientId,
+                clientSecret: googleClientSecret,
+            }),
+        ]
+        : []),
+];
+
 export default {
     // trustHost is REQUIRED for Vercel deployments.
-    // Vercel uses the x-forwarded-host header to determine the actual URL.
-    // Without this, Auth.js v5 defaults to "https://authjs.dev" as the issuer
-    // for OAuth state JWTs, causing the "expected: https://authjs.dev" error on callback.
     trustHost: true,
-
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secret: authSecret,
     session: { strategy: "jwt" },
-    providers: [
-        Github({
-            clientId: githubClientId,
-            clientSecret: githubClientSecret,
-            authorization: { params: { scope: "read:user user:email repo" } },
-        }),
-        Google({
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-        })
-    ]
+    providers,
 } satisfies NextAuthConfig 
